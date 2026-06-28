@@ -75,7 +75,7 @@ def download_worker(job_id: str, url: str, fmt: str):
 
     ydl_opts = {
         **common_opts,
-        "format": "bestaudio[ext=m4a]/bestaudio",
+        "format": "bestaudio",
         "outtmpl": output_template,
         "postprocessors": [
             {
