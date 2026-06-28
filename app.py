@@ -73,20 +73,19 @@ def download_worker(job_id: str, url: str, fmt: str):
         "no_warnings": True,
     }
 
-    if fmt == "mp3":
+    if fmt == "m4a":
         ydl_opts = {
             **common_opts,
-            "format": "bestaudio/best",
+            "format": "bestaudio[ext=m4a]/bestaudio[acodec=aac]/bestaudio",
             "outtmpl": output_template,
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3",
-                    "preferredquality": "192",
+                    "preferredcodec": "m4a",
                 }
             ],
         }
-        out_ext = "mp3"
+        out_ext = "m4a"
     else:
         ydl_opts = {
             **common_opts,
@@ -122,7 +121,7 @@ def api_start():
 
     if not url:
         return jsonify({"error": "No URL provided"}), 400
-    if fmt not in ("mp4", "mp3"):
+    if fmt not in ("mp4", "m4a"):
         fmt = "mp4"
 
     job_id = str(uuid.uuid4())
