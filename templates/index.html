@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick YouTube Downloader</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0d0d0d;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #f0f0f0;
+      padding: 20px;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: #ff0000;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-icon svg { width: 26px; height: 26px; fill: white; }
+
+    .logo-text h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text p {
+      font-size: 13px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    .url-wrap {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .url-wrap input {
+      width: 100%;
+      padding: 14px 48px 14px 16px;
+      background: #111;
+      border: 1.5px solid #333;
+      border-radius: 12px;
+      color: #f0f0f0;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .url-wrap input:focus { border-color: #ff0000; }
+    .url-wrap input::placeholder { color: #555; }
+
+    .clear-btn {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 2px;
+      display: none;
+    }
+
+    .clear-btn:hover { color: #aaa; }
+
+    .format-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .fmt-btn {
+      flex: 1;
+      padding: 12px;
+      border: 1.5px solid #333;
+      border-radius: 10px;
+      background: #111;
+      color: #aaa;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .fmt-btn .badge {
+      font-size: 10px;
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .fmt-btn.active {
+      border-color: #ff0000;
+      color: #fff;
+      background: rgba(255,0,0,0.08);
+    }
+
+    .fmt-btn.active .badge { background: #ff0000; color: #fff; }
+
+    .fmt-btn:hover:not(.active) { border-color: #555; color: #ccc; }
+
+    .dl-btn {
+      width: 100%;
+      padding: 16px;
+      background: #ff0000;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+
+    .dl-btn:hover:not(:disabled) { background: #e00; }
+    .dl-btn:active:not(:disabled) { transform: scale(0.98); }
+    .dl-btn:disabled { background: #444; cursor: not-allowed; color: #888; }
+
+    .progress-wrap {
+      margin-top: 24px;
+      display: none;
+    }
+
+    .progress-bar-bg {
+      background: #222;
+      border-radius: 8px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff0000, #ff4444);
+      border-radius: 8px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .status-msg {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .status-msg.success {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      color: #4ade80;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-msg.error {
+      background: rgba(255,0,0,0.1);
+      border: 1px solid rgba(255,0,0,0.25);
+      color: #f87171;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-msg .icon { font-size: 18px; flex-shrink: 0; }
+    .status-msg .text { flex: 1; }
+    .status-msg .title { font-weight: 600; margin-bottom: 2px; }
+    .status-msg .sub { font-size: 12px; opacity: 0.8; }
+
+    .dl-link-btn {
+      margin-top: 10px;
+      display: inline-block;
+      padding: 10px 20px;
+      background: #22c55e;
+      color: white;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .dl-link-btn:hover { background: #16a34a; }
+
+    footer {
+      margin-top: 28px;
+      text-align: center;
+      font-size: 12px;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M10 15.5l6-3.5-6-3.5v7zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+      </div>
+      <div class="logo-text">
+        <h1>Quick YouTube Downloader</h1>
+        <p>Paste a link, pick a format, download instantly</p>
+      </div>
+    </div>
+
+    <label for="url-input">YouTube URL</label>
+    <div class="url-wrap">
+      <input
+        id="url-input"
+        type="url"
+        placeholder="https://www.youtube.com/watch?v=..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button class="clear-btn" id="clear-btn" title="Clear">&#x2715;</button>
+    </div>
+
+    <label>Format</label>
+    <div class="format-group">
+      <button class="fmt-btn active" data-fmt="mp4">
+        <span>Video</span><span class="badge">MP4</span>
+      </button>
+      <button class="fmt-btn" data-fmt="mp3">
+        <span>Audio only</span><span class="badge">MP3</span>
+      </button>
+    </div>
+
+    <button class="dl-btn" id="dl-btn">Download</button>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-meta">
+        <span id="progress-pct">0%</span>
+        <span id="progress-speed"></span>
+        <span id="progress-eta"></span>
+      </div>
+    </div>
+
+    <div class="status-msg" id="status-msg"></div>
+
+    <footer>For personal use only &bull; Respect copyright</footer>
+  </div>
+
+  <script>
+    const urlInput = document.getElementById('url-input');
+    const clearBtn = document.getElementById('clear-btn');
+    const dlBtn = document.getElementById('dl-btn');
+    const progressWrap = document.getElementById('progress-wrap');
+    const progressFill = document.getElementById('progress-fill');
+    const progressPct = document.getElementById('progress-pct');
+    const progressSpeed = document.getElementById('progress-speed');
+    const progressEta = document.getElementById('progress-eta');
+    const statusMsg = document.getElementById('status-msg');
+    const fmtBtns = document.querySelectorAll('.fmt-btn');
+
+    let selectedFmt = 'mp4';
+    let activeES = null;
+
+    fmtBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        fmtBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedFmt = btn.dataset.fmt;
+      });
+    });
+
+    urlInput.addEventListener('input', () => {
+      clearBtn.style.display = urlInput.value ? 'block' : 'none';
+      hideStatus();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      urlInput.value = '';
+      clearBtn.style.display = 'none';
+      urlInput.focus();
+      hideStatus();
+    });
+
+    function hideStatus() {
+      statusMsg.style.display = 'none';
+      statusMsg.className = 'status-msg';
+      statusMsg.innerHTML = '';
+    }
+
+    function showError(msg) {
+      statusMsg.className = 'status-msg error';
+      statusMsg.innerHTML = `<span class="icon">&#x26A0;</span><div class="text"><div class="title">Download failed</div><div class="sub">${escHtml(msg)}</div></div>`;
+      statusMsg.style.display = 'flex';
+    }
+
+    function showSuccess(title, jobId) {
+      statusMsg.className = 'status-msg success';
+      statusMsg.innerHTML = `
+        <span class="icon">&#x2713;</span>
+        <div class="text">
+          <div class="title">${escHtml(title)}</div>
+          <div class="sub">Your file is ready!</div>
+          <a class="dl-link-btn" href="/api/file/${jobId}" download>Save File</a>
+        </div>`;
+      statusMsg.style.display = 'flex';
+    }
+
+    function escHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function setProgress(pct) {
+      progressFill.style.width = pct + '%';
+      progressPct.textContent = Math.round(pct) + '%';
+    }
+
+    function resetUI() {
+      dlBtn.disabled = false;
+      dlBtn.textContent = 'Download';
+      progressWrap.style.display = 'none';
+      setProgress(0);
+      progressSpeed.textContent = '';
+      progressEta.textContent = '';
+    }
+
+    dlBtn.addEventListener('click', async () => {
+      const url = urlInput.value.trim();
+      if (!url) { urlInput.focus(); return; }
+
+      if (activeES) { activeES.close(); activeES = null; }
+      hideStatus();
+      dlBtn.disabled = true;
+      dlBtn.textContent = 'Starting...';
+      progressWrap.style.display = 'block';
+      setProgress(0);
+
+      let jobId;
+      try {
+        const res = await fetch('/api/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, format: selectedFmt }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Server error');
+        jobId = data.job_id;
+      } catch (e) {
+        showError(e.message);
+        resetUI();
+        return;
+      }
+
+      dlBtn.textContent = 'Downloading...';
+
+      activeES = new EventSource(`/api/progress/${jobId}`);
+
+      activeES.onmessage = (e) => {
+        const d = JSON.parse(e.data);
+
+        if (d.status === 'downloading') {
+          setProgress(d.progress || 0);
+          progressSpeed.textContent = d.speed || '';
+          progressEta.textContent = d.eta ? `ETA ${d.eta}` : '';
+        } else if (d.status === 'processing') {
+          setProgress(99);
+          dlBtn.textContent = 'Processing...';
+          progressSpeed.textContent = '';
+          progressEta.textContent = '';
+        } else if (d.status === 'done') {
+          setProgress(100);
+          activeES.close();
+          activeES = null;
+          progressWrap.style.display = 'none';
+          showSuccess(d.title || 'Download complete', jobId);
+          resetUI();
+        } else if (d.status === 'error') {
+          activeES.close();
+          activeES = null;
+          showError(d.error || 'Unknown error');
+          resetUI();
+        }
+      };
+
+      activeES.onerror = () => {
+        activeES.close();
+        activeES = null;
+        showError('Connection to server lost. Please try again.');
+        resetUI();
+      };
+    });
+  </script>
+</body>
+</html>
