@@ -67,7 +67,7 @@ def download_worker(job_id: str, url: str, fmt: str):
     common_opts = {
         "ffmpeg_location": FFMPEG_PATH,
         "concurrent_fragment_downloads": 8,
-        "extractor_args": {"youtube": {"player_client": ["ios", "tv_embedded", "android"]}},
+        "extractor_args": {"youtube": {"player_client": ["ios", "android"]}},
         "progress_hooks": [progress_hook],
         "quiet": True,
         "no_warnings": True,
@@ -75,7 +75,7 @@ def download_worker(job_id: str, url: str, fmt: str):
 
     ydl_opts = {
         **common_opts,
-        "format": "bestaudio",
+        "format": "bestaudio/best",
         "outtmpl": output_template,
         "postprocessors": [
             {
