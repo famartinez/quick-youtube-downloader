@@ -73,27 +73,18 @@ def download_worker(job_id: str, url: str, fmt: str):
         "no_warnings": True,
     }
 
-    if fmt == "m4a":
-        ydl_opts = {
-            **common_opts,
-            "format": "bestaudio[ext=m4a]/bestaudio[acodec=aac]/bestaudio",
-            "outtmpl": output_template,
-            "postprocessors": [
-                {
-                    "key": "FFmpegExtractAudio",
-                    "preferredcodec": "m4a",
-                }
-            ],
-        }
-        out_ext = "m4a"
-    else:
-        ydl_opts = {
-            **common_opts,
-            "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-            "outtmpl": output_template,
-            "merge_output_format": "mp4",
-        }
-        out_ext = "mp4"
+    ydl_opts = {
+        **common_opts,
+        "format": "bestaudio[ext=m4a]/bestaudio",
+        "outtmpl": output_template,
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "m4a",
+            }
+        ],
+    }
+    out_ext = "m4a"
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -121,8 +112,7 @@ def api_start():
 
     if not url:
         return jsonify({"error": "No URL provided"}), 400
-    if fmt not in ("mp4", "m4a"):
-        fmt = "mp4"
+    fmt = "m4a"
 
     job_id = str(uuid.uuid4())
     write_job(job_id, {

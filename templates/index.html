@@ -107,48 +107,6 @@
 
     .clear-btn:hover { color: #aaa; }
 
-    .format-group {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 24px;
-    }
-
-    .fmt-btn {
-      flex: 1;
-      padding: 12px;
-      border: 1.5px solid #333;
-      border-radius: 10px;
-      background: #111;
-      color: #aaa;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .fmt-btn .badge {
-      font-size: 10px;
-      background: #333;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-
-    .fmt-btn.active {
-      border-color: #ff0000;
-      color: #fff;
-      background: rgba(255,0,0,0.08);
-    }
-
-    .fmt-btn.active .badge { background: #ff0000; color: #fff; }
-
-    .fmt-btn:hover:not(.active) { border-color: #555; color: #ccc; }
-
     .dl-btn {
       width: 100%;
       padding: 16px;
@@ -384,7 +342,7 @@
       </div>
       <div class="logo-text">
         <h1>Quick YouTube Downloader</h1>
-        <p>Paste a link, pick a format, download instantly</p>
+        <p>Paste a YouTube link and download audio instantly</p>
       </div>
     </div>
 
@@ -398,16 +356,6 @@
         spellcheck="false"
       />
       <button class="clear-btn" id="clear-btn" title="Clear">&#x2715;</button>
-    </div>
-
-    <label>Format</label>
-    <div class="format-group">
-      <button class="fmt-btn active" data-fmt="mp4">
-        <span>Video</span><span class="badge">MP4</span>
-      </button>
-      <button class="fmt-btn" data-fmt="m4a">
-        <span>Audio only</span><span class="badge">M4A</span>
-      </button>
     </div>
 
     <button class="dl-btn" id="dl-btn">Download</button>
@@ -457,18 +405,7 @@
     const stageDl    = document.getElementById('stage-dl');
     const stageConv  = document.getElementById('stage-conv');
     const stageReady = document.getElementById('stage-ready');
-    const fmtBtns    = document.querySelectorAll('.fmt-btn');
-
-    let selectedFmt = 'mp4';
     let activeES = null;
-
-    fmtBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        fmtBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedFmt = btn.dataset.fmt;
-      });
-    });
 
     urlInput.addEventListener('input', () => {
       clearBtn.style.display = urlInput.value ? 'block' : 'none';
@@ -566,7 +503,7 @@
         const res = await fetch('/api/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url, format: selectedFmt }),
+          body: JSON.stringify({ url, format: 'm4a' }),
         });
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data.error || 'Server error');
