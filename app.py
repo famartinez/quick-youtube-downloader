@@ -176,6 +176,7 @@ def api_file(job_id):
 
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     print("\n  Quick YouTube Downloader is running!")
-    print("  Open http://localhost:5000 in your browser\n")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    print(f"  Open http://localhost:{port} in your browser\n")
+    app.run(host="0.0.0.0", port=port, debug=False)
