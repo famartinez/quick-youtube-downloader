@@ -7,6 +7,9 @@ import re
 
 from flask import Flask, render_template, request, jsonify, send_file, Response
 import yt_dlp
+import imageio_ffmpeg
+
+FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
 
 app = Flask(__name__)
 
@@ -55,6 +58,7 @@ def download_worker(job_id: str, url: str, fmt: str):
                     "preferredquality": "192",
                 }
             ],
+            "ffmpeg_location": FFMPEG_PATH,
             "progress_hooks": [progress_hook],
             "quiet": True,
             "no_warnings": True,
@@ -65,6 +69,7 @@ def download_worker(job_id: str, url: str, fmt: str):
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "outtmpl": output_template,
             "merge_output_format": "mp4",
+            "ffmpeg_location": FFMPEG_PATH,
             "progress_hooks": [progress_hook],
             "quiet": True,
             "no_warnings": True,
