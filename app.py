@@ -16,18 +16,37 @@ app = Flask(__name__)
 DOWNLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-jobs = {}
-jobs_lock = threading.Lock()
-
 
 def safe_filename(title: str) -> str:
     return re.sub(r'[\\/*?:"<>|]', "", title).strip()[:100]
 
 
-def download_worker(job_id: str, url: str, fmt: str):
-    with jobs_lock:
-        job = jobs[job_id]
+def state_path(job_id: str) -> str:
+    return os.path.join(DOWNLOAD_DIR, f"{job_id}.json")
 
+
+def read_job(job_id: str):
+    try:
+        with open(state_path(job_id)) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def write_job(job_id: str, state: dict):
+    tmp = state_path(job_id) + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(state, f)
+    os.replace(tmp, state_path(job_id))
+
+
+def update_job(job_id: str, **kwargs):
+    state = read_job(job_id) or {}
+    state.update(kwargs)
+    write_job(job_id, state)
+
+
+def download_worker(job_id: str, url: str, fmt: str):
     def progress_hook(d):
         if d["status"] == "downloading":
             raw = d.get("_percent_str", "0%").strip().replace("%", "")
@@ -35,15 +54,13 @@ def download_worker(job_id: str, url: str, fmt: str):
                 pct = float(raw)
             except ValueError:
                 pct = 0.0
-            with jobs_lock:
-                job["progress"] = pct
-                job["speed"] = d.get("_speed_str", "").strip()
-                job["eta"] = d.get("_eta_str", "").strip()
-                job["status"] = "downloading"
+            update_job(job_id,
+                       status="downloading",
+                       progress=pct,
+                       speed=d.get("_speed_str", "").strip(),
+                       eta=d.get("_eta_str", "").strip())
         elif d["status"] == "finished":
-            with jobs_lock:
-                job["progress"] = 99
-                job["status"] = "processing"
+            update_job(job_id, status="processing", progress=99)
 
     output_template = os.path.join(DOWNLOAD_DIR, f"{job_id}.%(ext)s")
 
@@ -80,15 +97,13 @@ def download_worker(job_id: str, url: str, fmt: str):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             title = info.get("title", "download")
-            with jobs_lock:
-                job["title"] = title
-                job["filename"] = f"{job_id}.{out_ext}"
-                job["progress"] = 100
-                job["status"] = "done"
+            update_job(job_id,
+                       status="done",
+                       progress=100,
+                       title=title,
+                       filename=f"{job_id}.{out_ext}")
     except Exception as exc:
-        with jobs_lock:
-            job["status"] = "error"
-            job["error"] = str(exc)
+        update_job(job_id, status="error", error=str(exc))
 
 
 @app.route("/")
@@ -108,16 +123,15 @@ def api_start():
         fmt = "mp4"
 
     job_id = str(uuid.uuid4())
-    with jobs_lock:
-        jobs[job_id] = {
-            "status": "downloading",
-            "progress": 0,
-            "speed": "",
-            "eta": "",
-            "filename": None,
-            "title": None,
-            "error": None,
-        }
+    write_job(job_id, {
+        "status": "downloading",
+        "progress": 0,
+        "speed": "",
+        "eta": "",
+        "filename": None,
+        "title": None,
+        "error": None,
+    })
 
     t = threading.Thread(target=download_worker, args=(job_id, url, fmt), daemon=True)
     t.start()
@@ -129,15 +143,14 @@ def api_start():
 def api_progress(job_id):
     def stream():
         while True:
-            with jobs_lock:
-                if job_id not in jobs:
-                    yield f"data: {json.dumps({'status': 'error', 'error': 'Job not found'})}\n\n"
-                    return
-                snapshot = dict(jobs[job_id])
+            job = read_job(job_id)
+            if job is None:
+                yield f"data: {json.dumps({'status': 'error', 'error': 'Job not found'})}\n\n"
+                return
 
-            yield f"data: {json.dumps(snapshot)}\n\n"
+            yield f"data: {json.dumps(job)}\n\n"
 
-            if snapshot["status"] in ("done", "error"):
+            if job["status"] in ("done", "error"):
                 return
 
             time.sleep(0.4)
@@ -151,8 +164,7 @@ def api_progress(job_id):
 
 @app.route("/api/file/<job_id>")
 def api_file(job_id):
-    with jobs_lock:
-        job = jobs.get(job_id)
+    job = read_job(job_id)
 
     if not job:
         return jsonify({"error": "Job not found"}), 404
@@ -172,8 +184,10 @@ def api_file(job_id):
             os.remove(filepath)
         except OSError:
             pass
-        with jobs_lock:
-            jobs.pop(job_id, None)
+        try:
+            os.remove(state_path(job_id))
+        except OSError:
+            pass
 
     threading.Thread(target=remove_after, daemon=True).start()
 
