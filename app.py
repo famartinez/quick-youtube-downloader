@@ -67,7 +67,7 @@ def download_worker(job_id: str, url: str, fmt: str):
     common_opts = {
         "ffmpeg_location": FFMPEG_PATH,
         "concurrent_fragment_downloads": 8,
-        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+        "extractor_args": {"youtube": {"player_client": ["ios", "tv_embedded", "android"]}},
         "progress_hooks": [progress_hook],
         "quiet": True,
         "no_warnings": True,
