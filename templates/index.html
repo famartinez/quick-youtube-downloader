@@ -168,31 +168,158 @@
     .dl-btn:disabled { background: #444; cursor: not-allowed; color: #888; }
 
     .progress-wrap {
-      margin-top: 24px;
+      margin-top: 28px;
       display: none;
     }
 
+    .stages {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 18px;
+    }
+
+    .stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      position: relative;
+    }
+
+    .stage:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 7px;
+      left: calc(50% + 10px);
+      right: calc(-50% + 10px);
+      height: 2px;
+      background: #2a2a2a;
+      transition: background 0.4s;
+    }
+
+    .stage.done:not(:last-child)::after { background: #ff0000; }
+
+    .stage-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid #333;
+      background: #111;
+      transition: all 0.3s;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stage.active .stage-dot {
+      border-color: #ff0000;
+      background: #ff0000;
+      box-shadow: 0 0 0 4px rgba(255,0,0,0.15);
+      animation: stagePulse 1.4s ease-in-out infinite;
+    }
+
+    .stage.done .stage-dot {
+      border-color: #ff0000;
+      background: #ff0000;
+    }
+
+    .stage-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      transition: color 0.3s;
+    }
+
+    .stage.active .stage-label { color: #ff4444; }
+    .stage.done .stage-label  { color: #888; }
+
+    @keyframes stagePulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(255,0,0,0.15); }
+      50%       { box-shadow: 0 0 0 7px rgba(255,0,0,0.05); }
+    }
+
     .progress-bar-bg {
-      background: #222;
-      border-radius: 8px;
-      height: 8px;
+      background: #1e1e1e;
+      border-radius: 10px;
+      height: 10px;
       overflow: hidden;
-      margin-bottom: 10px;
+      margin-bottom: 14px;
+      position: relative;
     }
 
     .progress-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #ff0000, #ff4444);
-      border-radius: 8px;
+      background: linear-gradient(90deg, #cc0000, #ff5555);
+      border-radius: 10px;
       width: 0%;
-      transition: width 0.3s ease;
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { transform: translateX(-200%); }
+      100% { transform: translateX(400%); }
+    }
+
+    .progress-bar-fill.indeterminate {
+      width: 100% !important;
+      transition: none;
+      background: linear-gradient(90deg, #111, #ff3333 40%, #ff6666 50%, #ff3333 60%, #111);
+      background-size: 250% 100%;
+      animation: sweep 1.6s ease-in-out infinite;
+    }
+
+    .progress-bar-fill.indeterminate::after { display: none; }
+
+    @keyframes sweep {
+      0%   { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
     }
 
     .progress-meta {
       display: flex;
+      align-items: baseline;
       justify-content: space-between;
-      font-size: 12px;
-      color: #666;
+    }
+
+    .progress-pct {
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1.5px;
+      line-height: 1;
+    }
+
+    .progress-right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .progress-speed {
+      font-size: 13px;
+      font-weight: 600;
+      color: #ccc;
+    }
+
+    .progress-eta {
+      font-size: 11px;
+      color: #555;
     }
 
     .status-msg {
@@ -286,13 +413,29 @@
     <button class="dl-btn" id="dl-btn">Download</button>
 
     <div class="progress-wrap" id="progress-wrap">
+      <div class="stages">
+        <div class="stage" id="stage-dl">
+          <div class="stage-dot"></div>
+          <span class="stage-label">Downloading</span>
+        </div>
+        <div class="stage" id="stage-conv">
+          <div class="stage-dot"></div>
+          <span class="stage-label">Converting</span>
+        </div>
+        <div class="stage" id="stage-ready">
+          <div class="stage-dot"></div>
+          <span class="stage-label">Ready</span>
+        </div>
+      </div>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" id="progress-fill"></div>
       </div>
       <div class="progress-meta">
-        <span id="progress-pct">0%</span>
-        <span id="progress-speed"></span>
-        <span id="progress-eta"></span>
+        <span class="progress-pct" id="progress-pct">0%</span>
+        <div class="progress-right">
+          <span class="progress-speed" id="progress-speed"></span>
+          <span class="progress-eta" id="progress-eta"></span>
+        </div>
       </div>
     </div>
 
@@ -302,16 +445,19 @@
   </div>
 
   <script>
-    const urlInput = document.getElementById('url-input');
-    const clearBtn = document.getElementById('clear-btn');
-    const dlBtn = document.getElementById('dl-btn');
-    const progressWrap = document.getElementById('progress-wrap');
-    const progressFill = document.getElementById('progress-fill');
-    const progressPct = document.getElementById('progress-pct');
+    const urlInput   = document.getElementById('url-input');
+    const clearBtn   = document.getElementById('clear-btn');
+    const dlBtn      = document.getElementById('dl-btn');
+    const progressWrap  = document.getElementById('progress-wrap');
+    const progressFill  = document.getElementById('progress-fill');
+    const progressPct   = document.getElementById('progress-pct');
     const progressSpeed = document.getElementById('progress-speed');
-    const progressEta = document.getElementById('progress-eta');
-    const statusMsg = document.getElementById('status-msg');
-    const fmtBtns = document.querySelectorAll('.fmt-btn');
+    const progressEta   = document.getElementById('progress-eta');
+    const statusMsg  = document.getElementById('status-msg');
+    const stageDl    = document.getElementById('stage-dl');
+    const stageConv  = document.getElementById('stage-conv');
+    const stageReady = document.getElementById('stage-ready');
+    const fmtBtns    = document.querySelectorAll('.fmt-btn');
 
     let selectedFmt = 'mp4';
     let activeES = null;
@@ -364,18 +510,43 @@
       return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
+    function setStage(name) {
+      stageDl.className    = 'stage';
+      stageConv.className  = 'stage';
+      stageReady.className = 'stage';
+      if (name === 'downloading') {
+        stageDl.classList.add('active');
+      } else if (name === 'processing') {
+        stageDl.classList.add('done');
+        stageConv.classList.add('active');
+      } else if (name === 'done') {
+        stageDl.classList.add('done');
+        stageConv.classList.add('done');
+        stageReady.classList.add('done');
+      }
+    }
+
     function setProgress(pct) {
+      progressFill.classList.remove('indeterminate');
       progressFill.style.width = pct + '%';
       progressPct.textContent = Math.round(pct) + '%';
+    }
+
+    function setIndeterminate() {
+      progressFill.classList.add('indeterminate');
+      progressPct.textContent = '—';
     }
 
     function resetUI() {
       dlBtn.disabled = false;
       dlBtn.textContent = 'Download';
       progressWrap.style.display = 'none';
-      setProgress(0);
+      progressFill.classList.remove('indeterminate');
+      progressFill.style.width = '0%';
+      progressPct.textContent = '0%';
       progressSpeed.textContent = '';
       progressEta.textContent = '';
+      stageDl.className = stageConv.className = stageReady.className = 'stage';
     }
 
     dlBtn.addEventListener('click', async () => {
@@ -385,9 +556,10 @@
       if (activeES) { activeES.close(); activeES = null; }
       hideStatus();
       dlBtn.disabled = true;
-      dlBtn.textContent = 'Starting...';
+      dlBtn.textContent = 'Starting…';
       progressWrap.style.display = 'block';
       setProgress(0);
+      setStage('downloading');
 
       let jobId;
       try {
@@ -405,29 +577,33 @@
         return;
       }
 
-      dlBtn.textContent = 'Downloading...';
-
+      dlBtn.textContent = 'Downloading…';
       activeES = new EventSource(`/api/progress/${jobId}`);
 
       activeES.onmessage = (e) => {
         const d = JSON.parse(e.data);
 
         if (d.status === 'downloading') {
+          setStage('downloading');
           setProgress(d.progress || 0);
           progressSpeed.textContent = d.speed || '';
-          progressEta.textContent = d.eta ? `ETA ${d.eta}` : '';
+          progressEta.textContent   = d.eta ? `ETA ${d.eta}` : '';
         } else if (d.status === 'processing') {
-          setProgress(99);
-          dlBtn.textContent = 'Processing...';
+          setStage('processing');
+          setIndeterminate();
+          dlBtn.textContent = 'Converting…';
           progressSpeed.textContent = '';
-          progressEta.textContent = '';
+          progressEta.textContent   = '';
         } else if (d.status === 'done') {
+          setStage('done');
           setProgress(100);
           activeES.close();
           activeES = null;
-          progressWrap.style.display = 'none';
-          showSuccess(d.title || 'Download complete', jobId);
-          resetUI();
+          setTimeout(() => {
+            progressWrap.style.display = 'none';
+            showSuccess(d.title || 'Download complete', jobId);
+            resetUI();
+          }, 400);
         } else if (d.status === 'error') {
           activeES.close();
           activeES = null;

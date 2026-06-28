@@ -64,8 +64,18 @@ def download_worker(job_id: str, url: str, fmt: str):
 
     output_template = os.path.join(DOWNLOAD_DIR, f"{job_id}.%(ext)s")
 
+    common_opts = {
+        "ffmpeg_location": FFMPEG_PATH,
+        "concurrent_fragment_downloads": 8,
+        "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+        "progress_hooks": [progress_hook],
+        "quiet": True,
+        "no_warnings": True,
+    }
+
     if fmt == "mp3":
         ydl_opts = {
+            **common_opts,
             "format": "bestaudio/best",
             "outtmpl": output_template,
             "postprocessors": [
@@ -75,21 +85,14 @@ def download_worker(job_id: str, url: str, fmt: str):
                     "preferredquality": "192",
                 }
             ],
-            "ffmpeg_location": FFMPEG_PATH,
-            "progress_hooks": [progress_hook],
-            "quiet": True,
-            "no_warnings": True,
         }
         out_ext = "mp3"
     else:
         ydl_opts = {
+            **common_opts,
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "outtmpl": output_template,
             "merge_output_format": "mp4",
-            "ffmpeg_location": FFMPEG_PATH,
-            "progress_hooks": [progress_hook],
-            "quiet": True,
-            "no_warnings": True,
         }
         out_ext = "mp4"
 
